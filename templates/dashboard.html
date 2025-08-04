@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .card-subtitle {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .stats-card {
+            grid-column: span 2;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 120px;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .rank {
+            font-weight: bold;
+            color: #667eea;
+            min-width: 30px;
+        }
+
+        .name {
+            flex: 1;
+            margin-left: 15px;
+        }
+
+        .count {
+            font-weight: bold;
+            color: #2c3e50;
+            background: #f8f9fa;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            grid-column: span 2;
+        }
+
+        .refresh-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .stats-card {
+                grid-column: span 1;
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="refresh-info">
+        Auto-refresh every 30 seconds
+    </div>
+
+    <div class="container">
+        {% if error %}
+        <div class="error">
+            <h3>Error Loading Data</h3>
+            <p>{{ error }}</p>
+        </div>
+        {% else %}
+        
+        <!-- Stats Cards -->
+        <div class="card stats-card">
+            <div class="stat-item">
+                <div class="stat-number">{{ discos_scheduled }}</div>
+                <div class="stat-label">Discos Scheduled This Month</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ discos_held }}</div>
+                <div class="stat-label">Discos Held This Month</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ deals_closed }}</div>
+                <div class="stat-label">Deals Closed This Month</div>
+            </div>
+        </div>
+
+        <!-- Top Callers -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Top 5 Callers This Week</div>
+                    <div class="card-subtitle">{{ current_week }}</div>
+                </div>
+            </div>
+            <div class="card-content">
+                {% if top_callers %}
+                    {% for caller in top_callers %}
+                    <div class="list-item">
+                        <div class="rank">#{{ loop.index }}</div>
+                        <div class="name">{{ caller.name }}</div>
+                        <div class="count">{{ caller.count }} calls</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; color: #7f8c8d; padding: 20px;">
+                        No call data available for this week
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Top Bookers -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">Top 5 Bookers This Week</div>
+                    <div class="card-subtitle">{{ current_week }}</div>
+                </div>
+            </div>
+            <div class="card-content">
+                {% if top_bookers %}
+                    {% for booker in top_bookers %}
+                    <div class="list-item">
+                        <div class="rank">#{{ loop.index }}</div>
+                        <div class="name">{{ booker.name }}</div>
+                        <div class="count">{{ booker.count }} deals</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; color: #7f8c8d; padding: 20px;">
+                        No booking data available for this week
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Auto-refresh every 30 seconds
+        setInterval(function() {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html> 
