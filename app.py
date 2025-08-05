@@ -22,6 +22,7 @@ USER_ID_TO_NAME = {
     "161339161": "Unknown User",
     "184854685": "Tobey",
     "2050192952": "Ailish",
+    "67047645": "Ailish",
     "271795639": "JP",
     "387992756": "Nick",
     "609638562": "Rhett",
@@ -226,7 +227,7 @@ def dashboard():
         # Format data for template
         top_callers_formatted = []
         for caller in top_callers:
-            user_id = caller["_id"]
+            user_id = str(caller["_id"])  # Convert to string to ensure matching
             name = USER_ID_TO_NAME.get(user_id, f"User {user_id}")
             top_callers_formatted.append({
                 "name": name,
