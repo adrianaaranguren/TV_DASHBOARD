@@ -73,6 +73,14 @@ def get_current_month_dates():
     end_of_month = end_of_month.replace(hour=23, minute=59, second=59, microsecond=999999)
     return start_of_month, end_of_month
 
+def get_last_30_days_dates():
+    """Get start and end dates for last 30 days"""
+    today = datetime.now()
+    start_30_days_ago = today - timedelta(days=30)
+    start_30_days_ago = start_30_days_ago.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_today = today.replace(hour=23, minute=59, second=59, microsecond=999999)
+    return start_30_days_ago, end_today
+
 @app.route('/')
 def dashboard():
     try:
@@ -83,14 +91,14 @@ def dashboard():
         week_start, week_end = get_current_week_dates()
         month_start, month_end = get_current_month_dates()
         
-        # Top 5 callers this week
+        # Top 5 callers this month
         calls_collection = db.calls
         pipeline_calls = [
             {
                 "$match": {
                     "hubspotData.properties.hs_createdate": {
-                        "$gte": week_start.isoformat() + "Z",
-                        "$lte": week_end.isoformat() + "Z"
+                        "$gte": month_start.isoformat() + "Z",
+                        "$lte": month_end.isoformat() + "Z"
                     },
                     "hubspotData.properties.hubspot_owner_id": {"$ne": None}
                 }
@@ -111,14 +119,14 @@ def dashboard():
         
         top_callers = list(calls_collection.aggregate(pipeline_calls))
         
-        # Top 5 bookers this week
+        # Top 5 bookers this month
         deals_collection = db.deals
         pipeline_bookers = [
             {
                 "$match": {
                     "properties.createdate": {
-                        "$gte": week_start.isoformat() + "Z",
-                        "$lte": week_end.isoformat() + "Z"
+                        "$gte": month_start.isoformat() + "Z",
+                        "$lte": month_end.isoformat() + "Z"
                     },
                     "stageHistory": {"$exists": True, "$ne": []}
                 }
@@ -154,6 +162,53 @@ def dashboard():
         ]
         
         top_bookers = list(deals_collection.aggregate(pipeline_bookers))
+        
+        # Top 5 reps by discos held this month
+        pipeline_discos_held_reps = [
+            {
+                "$match": {
+                    "stageHistory": {
+                        "$elemMatch": {
+                            "value": "16012239",
+                            "timestamp": {
+                                "$gte": month_start,
+                                "$lte": month_end
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "$addFields": {
+                    "creatorId": {
+                        "$substr": [
+                            {"$arrayElemAt": ["$stageHistory.sourceId", -1]},
+                            7,
+                            -1
+                        ]
+                    }
+                }
+            },
+            {
+                "$match": {
+                    "creatorId": {"$ne": None, "$ne": ""}
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$creatorId",
+                    "disco_held_count": {"$sum": 1}
+                }
+            },
+            {
+                "$sort": {"disco_held_count": -1}
+            },
+            {
+                "$limit": 5
+            }
+        ]
+        
+        top_discos_held_reps = list(deals_collection.aggregate(pipeline_discos_held_reps))
         
         # Discos scheduled this month (deals that entered presentationscheduled stage this month)
         discos_scheduled_pipeline = [
@@ -243,14 +298,32 @@ def dashboard():
                 "count": booker["deal_count"]
             })
         
+        top_discos_held_reps_formatted = []
+        for rep in top_discos_held_reps:
+            user_id = rep["_id"]
+            name = USER_ID_TO_NAME.get(user_id, f"User {user_id}")
+            top_discos_held_reps_formatted.append({
+                "name": name,
+                "count": rep["disco_held_count"]
+            })
+        
         client.close()
+        
+        # Goal values (you can adjust these as needed)
+        discos_scheduled_goal = 210
+        discos_held_goal = 170
+        deals_closed_goal = 20
         
         return render_template('dashboard.html',
                              top_callers=top_callers_formatted,
                              top_bookers=top_bookers_formatted,
+                             top_discos_held_reps=top_discos_held_reps_formatted,
                              discos_scheduled=discos_scheduled_count,
                              discos_held=discos_held_count,
                              deals_closed=deals_closed_count,
+                             discos_scheduled_goal=discos_scheduled_goal,
+                             discos_held_goal=discos_held_goal,
+                             deals_closed_goal=deals_closed_goal,
                              current_week=f"{week_start.strftime('%B %d')} - {week_end.strftime('%B %d, %Y')}",
                              current_month=month_start.strftime('%B %Y'))
     
@@ -259,9 +332,13 @@ def dashboard():
         return render_template('dashboard.html',
                              top_callers=[],
                              top_bookers=[],
+                             top_discos_held_reps=[],
                              discos_scheduled=0,
                              discos_held=0,
                              deals_closed=0,
+                             discos_scheduled_goal=210,
+                             discos_held_goal=170,
+                             deals_closed_goal=20,
                              current_week="Error",
                              current_month="Error",
                              error=str(e))

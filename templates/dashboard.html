@@ -28,6 +28,40 @@
             height: calc(100vh - 40px);
         }
 
+        .container-four-cards {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+        }
+
+        .stats-card {
+            grid-column: span 3;
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 20px;
+            height: auto;
+            min-height: 120px;
+        }
+
+        .top-cards-row {
+            grid-column: span 3;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            height: fit-content;
+        }
+
+        .card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
         .card {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
@@ -60,35 +94,67 @@
             font-weight: 500;
         }
 
-        .stats-card {
-            grid-column: span 2;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
+
 
         .stat-item {
             text-align: center;
-            padding: 20px;
+            padding: 15px 10px;
             background: #1e51de;
             border-radius: 10px;
             color: white;
-            display: flex;
+            display: flex !important;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 120px;
+            min-height: 80px;
         }
 
         .stat-number {
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
 
         .stat-label {
-            font-size: 1rem;
+            font-size: 0.9rem;
             opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .progress-container {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            height: 6px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00cc6a);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .progress-bar.over-goal {
+            background: linear-gradient(90deg, #FF9800, #FF5722);
+        }
+
+        .progress-bar {
+            animation: fillProgress 1s ease-out;
+        }
+
+        @keyframes fillProgress {
+            from { width: 0%; }
+            to { width: var(--target-width); }
+        }
+
+        .goal-text {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 5px;
         }
 
         .list-item {
@@ -153,13 +219,18 @@
                 grid-column: span 1;
                 grid-template-columns: 1fr;
             }
+            
+            .top-cards-row {
+                grid-column: span 1;
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
 
 
-    <div class="container">
+    <div class="container container-four-cards">
         {% if error %}
         <div class="error">
             <h3>Error Loading Data</h3>
@@ -172,64 +243,101 @@
             <div class="stat-item">
                 <div class="stat-number">{{ discos_scheduled }}</div>
                 <div class="stat-label">Discos Scheduled This Month</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-scheduled" data-current="{{ discos_scheduled }}" data-goal="{{ discos_scheduled_goal }}"></div>
+                </div>
             </div>
             <div class="stat-item">
                 <div class="stat-number">{{ discos_held }}</div>
                 <div class="stat-label">Discos Held This Month</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-held" data-current="{{ discos_held }}" data-goal="{{ discos_held_goal }}"></div>
+                </div>
             </div>
             <div class="stat-item">
                 <div class="stat-number">{{ deals_closed }}</div>
                 <div class="stat-label">Deals Closed This Month</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-closed" data-current="{{ deals_closed }}" data-goal="{{ deals_closed_goal }}"></div>
+                </div>
             </div>
         </div>
 
-        <!-- Top Callers -->
-        <div class="card">
-            <div class="card-header">
-                <div>
-                    <div class="card-title">Top 5 Reps per Calls This Week</div>
-                    <div class="card-subtitle">{{ current_week }}</div>
+        <!-- Top Cards Row -->
+        <div class="top-cards-row">
+            <!-- Top Callers -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Top 5 Callers This Month</div>
+                        <div class="card-subtitle">{{ current_month }}</div>
+                    </div>
+                </div>
+                <div class="card-content">
+                    {% if top_callers %}
+                        {% for caller in top_callers %}
+                        <div class="list-item">
+                            <div class="rank">#{{ loop.index }}</div>
+                            <div class="name">{{ caller.name }}</div>
+                            <div class="count">{{ caller.count }} calls</div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; color: #7f8c8d; padding: 20px;">
+                            No call data available for this month
+                        </div>
+                    {% endif %}
                 </div>
             </div>
-            <div class="card-content">
-                {% if top_callers %}
-                    {% for caller in top_callers %}
-                    <div class="list-item">
-                        <div class="rank">#{{ loop.index }}</div>
-                        <div class="name">{{ caller.name }}</div>
-                        <div class="count">{{ caller.count }} calls</div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div style="text-align: center; color: #7f8c8d; padding: 20px;">
-                        No call data available for this week
-                    </div>
-                {% endif %}
-            </div>
-        </div>
 
-        <!-- Top Bookers -->
-        <div class="card">
-            <div class="card-header">
-                <div>
-                    <div class="card-title">Top 5 Reps per Books This Week</div>
-                    <div class="card-subtitle">{{ current_week }}</div>
+            <!-- Top Bookers -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Top 5 Bookies This Month</div>
+                        <div class="card-subtitle">{{ current_month }}</div>
+                    </div>
+                </div>
+                <div class="card-content">
+                    {% if top_bookers %}
+                        {% for booker in top_bookers %}
+                        <div class="list-item">
+                            <div class="rank">#{{ loop.index }}</div>
+                            <div class="name">{{ booker.name }}</div>
+                            <div class="count">{{ booker.count }} deals</div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; color: #7f8c8d; padding: 20px;">
+                            No booking data available for this month
+                        </div>
+                    {% endif %}
                 </div>
             </div>
-            <div class="card-content">
-                {% if top_bookers %}
-                    {% for booker in top_bookers %}
-                    <div class="list-item">
-                        <div class="rank">#{{ loop.index }}</div>
-                        <div class="name">{{ booker.name }}</div>
-                        <div class="count">{{ booker.count }} deals</div>
+
+            <!-- Top Reps by Discos Held -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Top 5 Holders This Month</div>
+                        <div class="card-subtitle">{{ current_month }}</div>
                     </div>
-                    {% endfor %}
-                {% else %}
-                    <div style="text-align: center; color: #7f8c8d; padding: 20px;">
-                        No booking data available for this week
-                    </div>
-                {% endif %}
+                </div>
+                <div class="card-content">
+                    {% if top_discos_held_reps %}
+                        {% for rep in top_discos_held_reps %}
+                        <div class="list-item">
+                            <div class="rank">#{{ loop.index }}</div>
+                            <div class="name">{{ rep.name }}</div>
+                            <div class="count">{{ rep.count }} discos</div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; color: #7f8c8d; padding: 20px;">
+                            No disco held data available for this month
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
         {% endif %}
@@ -240,6 +348,26 @@
         setInterval(function() {
             location.reload();
         }, 600000);
+
+        // Set up progress bars
+        document.addEventListener('DOMContentLoaded', function() {
+            const progressBars = document.querySelectorAll('.progress-bar');
+            
+            progressBars.forEach(function(bar) {
+                const current = parseInt(bar.dataset.current);
+                const goal = parseInt(bar.dataset.goal);
+                const percentage = Math.min((current / goal) * 100, 100);
+                
+                // Set CSS custom property for animation
+                bar.style.setProperty('--target-width', percentage + '%');
+                bar.style.width = percentage + '%';
+                
+                // Add over-goal class if current exceeds goal
+                if (current > goal) {
+                    bar.classList.add('over-goal');
+                }
+            });
+        });
     </script>
 </body>
 </html> 
