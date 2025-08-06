@@ -81,6 +81,13 @@ def get_last_30_days_dates():
     end_today = today.replace(hour=23, minute=59, second=59, microsecond=999999)
     return start_30_days_ago, end_today
 
+def get_today_dates():
+    """Get start and end dates for today"""
+    today = datetime.now()
+    start_of_day = today.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = today.replace(hour=23, minute=59, second=59, microsecond=999999)
+    return start_of_day, end_of_day
+
 @app.route('/')
 def dashboard():
     try:
@@ -90,15 +97,16 @@ def dashboard():
         # Get date ranges
         week_start, week_end = get_current_week_dates()
         month_start, month_end = get_current_month_dates()
+        today_start, today_end = get_today_dates()
         
-        # Top 5 callers this month
+        # Top 5 callers today
         calls_collection = db.calls
         pipeline_calls = [
             {
                 "$match": {
                     "hubspotData.properties.hs_createdate": {
-                        "$gte": month_start.isoformat() + "Z",
-                        "$lte": month_end.isoformat() + "Z"
+                        "$gte": today_start.isoformat() + "Z",
+                        "$lte": today_end.isoformat() + "Z"
                     },
                     "hubspotData.properties.hubspot_owner_id": {"$ne": None}
                 }
