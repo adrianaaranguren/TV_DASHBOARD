@@ -333,7 +333,8 @@ def dashboard():
                              discos_held_goal=discos_held_goal,
                              deals_closed_goal=deals_closed_goal,
                              current_week=f"{week_start.strftime('%B %d')} - {week_end.strftime('%B %d, %Y')}",
-                             current_month=month_start.strftime('%B %Y'))
+                             current_month=month_start.strftime('%B %Y'),
+                             today_date=today_start.strftime('%B %d, %Y'))
     
     except Exception as e:
         print(f"Error: {e}")
@@ -349,6 +350,7 @@ def dashboard():
                              deals_closed_goal=20,
                              current_week="Error",
                              current_month="Error",
+                             today_date="Error",
                              error=str(e))
 
 if __name__ == '__main__':
